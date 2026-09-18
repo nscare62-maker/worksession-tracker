@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">WorkSession Tracker</string>
+
+    <!-- Login -->
+    <string name="login_subtitle">Sign in to start tracking your shifts</string>
+    <string name="hint_email">Email address</string>
+    <string name="hint_password">Password</string>
+    <string name="btn_login">Sign In</string>
+
+    <!-- Worker -->
+    <string name="title_worker">My Shift</string>
+    <string name="btn_punch_in">Punch In</string>
+    <string name="btn_punch_out">Punch Out</string>
+    <string name="title_my_tasks">My Tasks</string>
+    <string name="label_no_tasks">No tasks assigned</string>
+    <string name="btn_start_task">Start</string>
+    <string name="btn_complete_task">Complete</string>
+
+    <!-- Manager -->
+    <string name="title_manager">Manager Dashboard</string>
+    <string name="label_no_workers">No worker data available</string>
+    <string name="tab_workers">Workers</string>
+    <string name="tab_tasks">Tasks</string>
+
+    <!-- Common -->
+    <string name="btn_logout">Logout</string>
+    <string name="label_tracking_active">● Location tracking active</string>
+    <string name="notification_channel_name">Location Tracking</string>
+    <string name="notification_channel_desc">Shows while work session GPS tracking is active</string>
+    <string name="notification_title">WorkSession: Tracking active</string>
+    <string name="notification_body">GPS location is being recorded</string>
+</resources>

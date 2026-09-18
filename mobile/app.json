@@ -1,0 +1,38 @@
+{
+  "expo": {
+    "name": "WorkSession Tracker",
+    "slug": "worksession-tracker",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "This app shares your location with your manager only while you are clocked in for a work session.",
+          "locationAlwaysPermission": "Background location is used only during an active work session so your manager can see your live position; it stops immediately when you punch out.",
+          "isAndroidBackgroundLocationEnabled": true
+        }
+      ],
+      "expo-task-manager"
+    ],
+    "android": {
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE"
+      ]
+    },
+    "ios": {
+      "infoPlist": {
+        "UIBackgroundModes": ["location"],
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Location is shared with your manager only during an active work session and stops the instant you punch out.",
+        "NSLocationWhenInUseUsageDescription": "Location is used to show your position on the manager map while clocked in."
+      }
+    },
+    "extra": {
+      "apiBaseUrl": "http://localhost:4000",
+      "wsBaseUrl": "ws://localhost:4000"
+    }
+  }
+}

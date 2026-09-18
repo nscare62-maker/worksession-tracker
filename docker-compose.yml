@@ -1,0 +1,44 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: worksession_tracker
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@db:5432/worksession_tracker
+      PORT: 4000
+      NODE_ENV: production
+      CORS_ORIGIN: http://localhost:5173
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in your .env}
+      JWT_EXPIRES_IN: 12h
+      DEFAULT_UPDATE_INTERVAL_SEC: 60
+      DEFAULT_DISTANCE_FILTER_M: 100
+      STALE_THRESHOLD_SEC: 180
+      LOCATION_RETENTION_DAYS: 90
+      CONSENT_POLICY_VERSION: 2026-09-v1
+    ports:
+      - "4000:4000"
+
+volumes:
+  pgdata:

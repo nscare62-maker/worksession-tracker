@@ -1,0 +1,5 @@
+# Route all API calls to the Netlify serverless function
+/api/*  /.netlify/functions/api/:splat  200
+
+# SPA fallback — must be last
+/*  /index.html  200

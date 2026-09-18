@@ -1,0 +1,62 @@
+[build]
+  base = "dashboard"
+  publish = "dist"
+  command = "npm run build"
+  functions = "netlify/functions"
+
+[functions]
+  node_bundler = "esbuild"
+
+# ── Route all API paths to the serverless function ──────────────────────
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/auth/*"
+  to = "/.netlify/functions/api/api/auth/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/sessions/*"
+  to = "/.netlify/functions/api/api/sessions/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/locations"
+  to = "/.netlify/functions/api/api/locations"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/locations/*"
+  to = "/.netlify/functions/api/api/locations/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/manager/*"
+  to = "/.netlify/functions/api/api/manager/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/tasks/*"
+  to = "/.netlify/functions/api/api/tasks/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/activity"
+  to = "/.netlify/functions/api/api/activity"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
