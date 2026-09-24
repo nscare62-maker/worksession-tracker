@@ -445,8 +445,9 @@ export function MapView({
         <div style={hudBadge}>● Live Tracking</div>
 
         {liveCount > 0 && (
-          <div style={{ ...hudBadge, color: "#22c55e", borderColor: "rgba(34,197,94,0.3)" }}>
-            ⚡ {liveCount} live
+          <div style={{ ...hudBadge, color: "#22c55e", borderColor: "rgba(34,197,94,0.3)", display: "flex", alignItems: "center", gap: 5 }}>
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#22c55e", boxShadow: "0 0 6px #22c55e", display: "inline-block" }} />
+            <span>{liveCount} live</span>
           </div>
         )}
 

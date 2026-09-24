@@ -12,7 +12,6 @@ import { RoutePoint, WorkerPosition } from "./types";
 import {
   NavigationIcon,
   UsersIcon,
-  ClipboardIcon,
   ActivityIcon,
   KeyIcon,
   LogOutIcon,
@@ -20,6 +19,16 @@ import {
   MapPinIcon,
   RouteIcon,
   UserIcon,
+  PlayIcon,
+  SquareIcon,
+  RadioIcon,
+  AlertTriangleIcon,
+  SettingsIcon,
+  LayoutDashboardIcon,
+  ArrowLeftIcon,
+  InfoIcon,
+  RefreshIcon,
+  LockIcon,
 } from "./components/Icons";
 import "./styles/motion.css";
 
@@ -28,7 +37,6 @@ const fadeUp   = { hidden: { opacity: 0, y: 28 }, visible: (i = 0) => ({ opacity
 const scaleIn  = { hidden: { opacity: 0, scale: 0.9 }, visible: { opacity: 1, scale: 1, transition: { duration: 0.3, ease: EASE } } };
 
 type PortalRole = "admin" | "manager" | "worker";
-interface Task { id: string; title: string; description: string | null; assigned_by: string; assigned_to: string; status: "assigned" | "in_progress" | "completed"; assigner_name: string; assignee_name: string; completion_report: string | null; }
 interface ActiveSession { id: string; status: string; started_at: string; update_interval_sec: number; distance_filter_m: number; clock_method: string; }
 
 // ── CONSENT GATE ──
@@ -60,20 +68,6 @@ function StatChip({ label, value, color }: { label: string; value: string; color
       <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em" }}>{label}</div>
       <div style={{ fontSize: 13, fontWeight: 700, color }}>{value}</div>
     </div>
-  );
-}
-
-function TaskStatusPill({ status }: { status: string }) {
-  const map: Record<string, { label: string; color: string; bg: string }> = {
-    assigned:    { label: "Assigned",    color: "var(--blue)",  bg: "var(--blue-dim)"  },
-    in_progress: { label: "In Progress", color: "var(--amber)", bg: "var(--amber-dim)" },
-    completed:   { label: "Completed",   color: "var(--green)", bg: "var(--green-dim)" },
-  };
-  const s = map[status] ?? { label: status, color: "var(--text-muted)", bg: "rgba(255,255,255,0.06)" };
-  return (
-    <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 99, color: s.color, background: s.bg, border: `1px solid ${s.color}44`, display: "inline-block" }}>
-      {s.label}
-    </span>
   );
 }
 
@@ -411,7 +405,10 @@ function PunchInPanel({
           gap: 6,
         }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-            <span>⚠️ {gpsErrorMessage || "GPS signal not acquired. Please ensure Location is ON."}</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <AlertTriangleIcon size={14} color="#fca5a5" />
+              <span>{gpsErrorMessage || "GPS signal not acquired. Please ensure Location is ON."}</span>
+            </div>
             <button
               type="button"
               onClick={() => session?.id && sendBeacon(session.id)}
@@ -425,9 +422,13 @@ function PunchInPanel({
                 padding: "4px 8px",
                 cursor: "pointer",
                 whiteSpace: "nowrap",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 5,
               }}
             >
-              🔄 Retry GPS
+              <RefreshIcon size={12} color="#fff" />
+              <span>Retry GPS</span>
             </button>
           </div>
           {typeof (window as any).AndroidBridge?.openLocationSettings === "function" && (
@@ -444,9 +445,13 @@ function PunchInPanel({
                 cursor: "pointer",
                 padding: 0,
                 textDecoration: "underline",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 5,
               }}
             >
-              ⚙️ Open Android Location Settings
+              <SettingsIcon size={13} color="#38bdf8" />
+              <span>Open Android Location Settings</span>
             </button>
           )}
         </div>
@@ -464,7 +469,9 @@ function PunchInPanel({
           alignItems: "center",
           gap: 6
         }}>
-          <span style={{ fontSize: 12 }}>{syncFailed ? "⚠️" : "📡"}</span>
+          <span style={{ display: "inline-flex", alignItems: "center" }}>
+            {syncFailed ? <AlertTriangleIcon size={14} color="var(--amber)" /> : <RadioIcon size={14} color="var(--green)" />}
+          </span>
           <span style={{ color: syncFailed ? "var(--amber)" : "var(--green)", fontWeight: 600 }}>
             {syncFailed
               ? (syncError ? `Server sync retrying (${syncError})...` : "Server sync retrying...")
@@ -474,19 +481,24 @@ function PunchInPanel({
       )}
 
       <AnimatePresence>
-        {error && <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="alert-strip error" style={{ marginBottom: 10 }}>⚠️ {error}</motion.div>}
+        {error && (
+          <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="alert-strip error" style={{ marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
+            <AlertTriangleIcon size={14} color="#fca5a5" />
+            <span>{error}</span>
+          </motion.div>
+        )}
         {message && <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="alert-strip success" style={{ marginBottom: 10 }}>{message}</motion.div>}
       </AnimatePresence>
 
       <div style={{ display: "flex", gap: 8 }}>
         {!isActive ? (
           <button type="button" className="btn-primary btn-green" onClick={handlePunchIn} disabled={busy} style={{ flex: 1, padding: "11px 20px", fontSize: 14 }}>
-            {busy ? <Spinner /> : "⏱️ Punch In"}
+            {busy ? <Spinner /> : <span style={{ display: "inline-flex", alignItems: "center", gap: 8, justifyContent: "center" }}><PlayIcon size={14} /> Punch In</span>}
           </button>
         ) : (
           <>
             <button type="button" className="btn-primary btn-red" onClick={handlePunchOut} disabled={busy} style={{ flex: 1, padding: "11px 16px", fontSize: 14 }}>
-              {busy ? <Spinner /> : "⏹️ Punch Out"}
+              {busy ? <Spinner /> : <span style={{ display: "inline-flex", alignItems: "center", gap: 8, justifyContent: "center" }}><SquareIcon size={13} /> Punch Out</span>}
             </button>
             <button
               type="button"
@@ -507,7 +519,8 @@ function PunchInPanel({
               }}
               title="Force GPS update now"
             >
-              🔄 Refresh GPS
+              <RefreshIcon size={13} color="#38bdf8" />
+              <span>Refresh GPS</span>
             </button>
           </>
         )}
@@ -553,7 +566,9 @@ function LoginForm({ onLoggedIn }: { onLoggedIn: (role: PortalRole, fullName: st
           {/* Header */}
           <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 28 }}>
             <div style={{ position: "relative" }}>
-              <div className="sidebar-logo-icon" style={{ width: 48, height: 48, fontSize: 22, borderRadius: 14 }}>📍</div>
+              <div className="sidebar-logo-icon" style={{ width: 48, height: 48, borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <MapPinIcon size={24} color="#38bdf8" />
+              </div>
               <div style={{ position: "absolute", inset: -5, borderRadius: "50%", border: "2px solid transparent", borderTopColor: "var(--blue)", borderRightColor: "var(--green)", animation: "spin-slow 4s linear infinite", pointerEvents: "none" }} />
             </div>
             <div>
@@ -585,7 +600,12 @@ function LoginForm({ onLoggedIn }: { onLoggedIn: (role: PortalRole, fullName: st
             </div>
 
             <AnimatePresence>
-              {error && <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="alert-strip error">⚠️ {error}</motion.div>}
+              {error && (
+                <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="alert-strip error" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <AlertTriangleIcon size={14} color="#fca5a5" />
+                  <span>{error}</span>
+                </motion.div>
+              )}
             </AnimatePresence>
 
             <button type="submit" id="login-submit" className="btn-primary" style={{ width: "100%", padding: "14px 20px", fontSize: 15, marginTop: 4, background: "linear-gradient(135deg, #1d4ed8, #3b82f6)", boxShadow: "0 4px 24px rgba(59,130,246,0.4)" }} disabled={loading}>
@@ -594,8 +614,9 @@ function LoginForm({ onLoggedIn }: { onLoggedIn: (role: PortalRole, fullName: st
           </form>
 
           {/* Footer */}
-          <div style={{ marginTop: 24, padding: "14px 16px", background: "rgba(255,255,255,0.02)", border: "1px solid var(--border)", borderRadius: 10, fontSize: 11, color: "var(--text-muted)", lineHeight: 1.6 }}>
-            🔒 Your data is encrypted and your location is only tracked during active shifts.
+          <div style={{ marginTop: 24, padding: "14px 16px", background: "rgba(255,255,255,0.02)", border: "1px solid var(--border)", borderRadius: 10, fontSize: 11, color: "var(--text-muted)", lineHeight: 1.6, display: "flex", alignItems: "center", gap: 8 }}>
+            <LockIcon size={14} color="var(--text-muted)" />
+            <span>Your data is encrypted and your location is only tracked during active shifts.</span>
           </div>
         </div>
       </motion.div>
@@ -610,9 +631,6 @@ function Dashboard({ role, fullName }: { role: "admin" | "manager"; fullName: st
   const [selectedWorkerId, setSelectedWorkerId] = useState<string | null>(null);
   const [route, setRoute]               = useState<RoutePoint[] | null>(null);
   const [loadError, setLoadError]       = useState<string | null>(null);
-  const [tasks, setTasks]               = useState<Task[]>([]);
-  const [newTask, setNewTask]           = useState({ title: "", description: "", assignedTo: "" });
-  const [taskMessage, setTaskMessage]   = useState<string | null>(null);
   const [teams, setTeams]               = useState<{ id: string; name: string }[]>([]);
   const [newUser, setNewUser]           = useState({ fullName: "", email: "", password: "", role: "worker" as "worker" | "manager", teamId: "" });
   const [userMessage, setUserMessage]   = useState<string | null>(null);
@@ -620,11 +638,10 @@ function Dashboard({ role, fullName }: { role: "admin" | "manager"; fullName: st
   const [copiedCreds, setCopiedCreds]   = useState(false);
   const [credsRefreshKey, setCredsRefreshKey] = useState(0);
   const [isCreatingUser, setIsCreatingUser] = useState(false);
-  const [isCreatingTask, setIsCreatingTask] = useState(false);
   const [mySession, setMySession]       = useState<ActiveSession | null>(null);
 
-  // Active navigation view: dashboard, workers, tasks, activity, credentials
-  const [sideNav, setSideNav]           = useState<"dashboard"|"workers"|"tasks"|"activity"|"credentials">("dashboard");
+  // Active navigation view: dashboard, workers, activity, credentials
+  const [sideNav, setSideNav]           = useState<"dashboard"|"workers"|"activity"|"credentials">("dashboard");
   // Sub-tabs
   const [workerSubTab, setWorkerSubTab] = useState<"list"|"add">("list");
   // Right panel tab on dashboard (for admin, detail only; for manager, shift or detail)
@@ -644,8 +661,6 @@ function Dashboard({ role, fullName }: { role: "admin" | "manager"; fullName: st
       const [{ positions: pos }, { workers }] = await Promise.all([api.getLivePositions(), api.listWorkers()]);
       setPositions(pos);
       setAllWorkers(workers);
-      const tr = await api.getTasks();
-      setTasks(tr.tasks);
       setLoadError(null);
     } catch (err) { setLoadError(err instanceof Error ? err.message : "Dashboard data could not be loaded."); }
   }, []);
@@ -768,18 +783,6 @@ function Dashboard({ role, fullName }: { role: "admin" | "manager"; fullName: st
     navigator.clipboard.writeText(text).then(() => { setCopiedCreds(true); setTimeout(() => setCopiedCreds(false), 2000); });
   }
 
-  async function handleCreateTask(e: React.FormEvent) {
-    e.preventDefault(); setTaskMessage(null); setIsCreatingTask(true);
-    try {
-      await api.createTask(newTask);
-      setNewTask({ title: "", description: "", assignedTo: "" });
-      setTaskMessage("✓ Task assigned.");
-      const tr = await api.getTasks();
-      setTasks(tr.tasks);
-    } catch (err) { setTaskMessage(err instanceof Error ? err.message : "Could not assign task."); }
-    finally { setIsCreatingTask(false); }
-  }
-
   function signOut() {
     setAuthToken(null);
     localStorage.removeItem("worksession.role");
@@ -787,7 +790,7 @@ function Dashboard({ role, fullName }: { role: "admin" | "manager"; fullName: st
     window.location.reload();
   }
 
-  async function handleDeleteWorker(userId: string, name: string) {
+  async function handleDeleteWorker(userId: string, _name: string) {
     try {
       await api.deleteUser(userId);
       if (selectedWorkerId === userId) setSelectedWorkerId(null);
@@ -831,17 +834,13 @@ function Dashboard({ role, fullName }: { role: "admin" | "manager"; fullName: st
           } as WorkerPosition)
         : undefined);
 
-  const pendingTasks   = (tasks ?? []).filter(t => t?.status !== "completed");
-  const completedTasks = (tasks ?? []).filter(t => t?.status === "completed");
-
   // Deduplicated Sidebar items - exactly 1 of each!
-  const sideItems: { key: typeof sideNav; icon: string; label: string; badge?: number }[] = [
-    { key: "dashboard",   icon: "🗺️",  label: "Dashboard" },
-    { key: "workers",     icon: "👥",  label: "Workers",     badge: totalCount || undefined },
-    { key: "tasks",       icon: "📋",  label: "Tasks",       badge: pendingTasks.length || undefined },
+  const sideItems: { key: typeof sideNav; icon: React.ReactNode; label: string; badge?: number }[] = [
+    { key: "dashboard",   icon: <LayoutDashboardIcon size={16} />, label: "Dashboard" },
+    { key: "workers",     icon: <UsersIcon size={16} />,           label: "Workers",     badge: totalCount || undefined },
     ...(role === "admin" ? [
-      { key: "activity" as typeof sideNav,    icon: "📜", label: "Activity" },
-      { key: "credentials" as typeof sideNav, icon: "🔑", label: "Credentials" },
+      { key: "activity" as typeof sideNav,    icon: <ActivityIcon size={16} />, label: "Activity" },
+      { key: "credentials" as typeof sideNav, icon: <KeyIcon size={16} />,      label: "Credentials" },
     ] : []),
   ];
 
@@ -850,7 +849,7 @@ function Dashboard({ role, fullName }: { role: "admin" | "manager"; fullName: st
       {/* ── SIDEBAR ── */}
       <aside className="sidebar">
         <div className="sidebar-logo">
-          <div className="sidebar-logo-icon">📍</div>
+          <div className="sidebar-logo-icon"><MapPinIcon size={18} color="#38bdf8" /></div>
           <div className="sidebar-logo-text">
             <div className="sidebar-logo-name">Work<span style={{ color: "var(--green)" }}>Session</span></div>
             <div className="sidebar-logo-sub">Live Tracking</div>
@@ -873,8 +872,8 @@ function Dashboard({ role, fullName }: { role: "admin" | "manager"; fullName: st
         </nav>
 
         <div className="sidebar-footer">
-          <button type="button" className="sidebar-nav-item" onClick={signOut} style={{ width: "100%", color: "var(--red)", marginBottom: 8 }}>
-            <span className="sidebar-nav-icon">🚪</span> Sign Out
+          <button type="button" className="sidebar-nav-item" onClick={signOut} style={{ width: "100%", color: "var(--red)", marginBottom: 8, display: "flex", alignItems: "center", gap: 8 }}>
+            <span className="sidebar-nav-icon"><LogOutIcon size={15} color="var(--red)" /></span> Sign Out
           </button>
           <div className="sidebar-user">
             <div className={`sidebar-avatar ${avatarColor(fullName)}`}>{initials(fullName)}</div>
@@ -968,7 +967,7 @@ function Dashboard({ role, fullName }: { role: "admin" | "manager"; fullName: st
               {/* Stat Cards */}
               <div className="stat-cards-row">
                 <motion.div className="stat-card blue" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
-                  <div className="stat-card-icon">👥</div>
+                  <div className="stat-card-icon"><UsersIcon size={20} color="var(--blue)" /></div>
                   <div className="stat-card-body">
                     <div className="stat-card-label">Total Workers</div>
                     <div className="stat-card-value">{totalCount}</div>
@@ -976,7 +975,7 @@ function Dashboard({ role, fullName }: { role: "admin" | "manager"; fullName: st
                   </div>
                 </motion.div>
                 <motion.div className="stat-card green" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-                  <div className="stat-card-icon">⚡</div>
+                  <div className="stat-card-icon"><ActivityIcon size={20} color="var(--green)" /></div>
                   <div className="stat-card-body">
                     <div className="stat-card-label">Active / On Site</div>
                     <div className="stat-card-value">{activeCount + (mySession ? 1 : 0)}</div>
@@ -984,7 +983,7 @@ function Dashboard({ role, fullName }: { role: "admin" | "manager"; fullName: st
                   </div>
                 </motion.div>
                 <motion.div className="stat-card amber" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
-                  <div className="stat-card-icon">📍</div>
+                  <div className="stat-card-icon"><MapPinIcon size={20} color="var(--amber)" /></div>
                   <div className="stat-card-body">
                     <div className="stat-card-label">GPS Located</div>
                     <div className="stat-card-value">{liveCount}</div>
@@ -992,7 +991,7 @@ function Dashboard({ role, fullName }: { role: "admin" | "manager"; fullName: st
                   </div>
                 </motion.div>
                 <motion.div className="stat-card red" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-                  <div className="stat-card-icon">⏸️</div>
+                  <div className="stat-card-icon"><ClockIcon size={20} color="var(--red)" /></div>
                   <div className="stat-card-body">
                     <div className="stat-card-label">Offline</div>
                     <div className="stat-card-value">{offlineCount}</div>
@@ -1037,7 +1036,10 @@ function Dashboard({ role, fullName }: { role: "admin" | "manager"; fullName: st
                   </div>
 
                   {loadError && (
-                    <div className="alert-strip error" style={{ position: "absolute", top: 56, left: "50%", transform: "translateX(-50%)", zIndex: 2000, maxWidth: 480 }}>⚠️ {loadError}</div>
+                    <div className="alert-strip error" style={{ position: "absolute", top: 56, left: "50%", transform: "translateX(-50%)", zIndex: 2000, maxWidth: 480, display: "flex", alignItems: "center", gap: 6 }}>
+                      <AlertTriangleIcon size={14} color="#fca5a5" />
+                      <span>{loadError}</span>
+                    </div>
                   )}
 
                   <div className="map-inner">
@@ -1174,9 +1176,9 @@ function Dashboard({ role, fullName }: { role: "admin" | "manager"; fullName: st
                   <div className="bottom-kpi-trend up">On site now</div>
                 </div>
                 <div className="bottom-kpi">
-                  <div className="bottom-kpi-label">Tasks Open</div>
-                  <div className="bottom-kpi-value">{pendingTasks.length}</div>
-                  <div className="bottom-kpi-trend neutral">Pending</div>
+                  <div className="bottom-kpi-label">Offline Workers</div>
+                  <div className="bottom-kpi-value">{offlineCount}</div>
+                  <div className="bottom-kpi-trend neutral">Off shift</div>
                 </div>
                 <div className="bottom-kpi">
                   <div className="bottom-kpi-label">GPS Tracked</div>
@@ -1195,13 +1197,15 @@ function Dashboard({ role, fullName }: { role: "admin" | "manager"; fullName: st
                 onClick={() => setSideNav("dashboard")}
                 style={{ alignSelf: "flex-start", display: "flex", alignItems: "center", gap: 5, padding: "6px 12px", borderRadius: 8, background: "rgba(59,130,246,0.12)", border: "1px solid rgba(59,130,246,0.3)", color: "var(--blue)", cursor: "pointer", fontSize: 12, fontWeight: 700, marginBottom: 12 }}
               >
-                ← Back to Dashboard
+                <ArrowLeftIcon size={13} />
+                <span>Back to Dashboard</span>
               </button>
 
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
                 <div>
-                  <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "var(--text-primary)" }}>
-                    👥 Workers Management
+                  <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "var(--text-primary)", display: "flex", alignItems: "center", gap: 8 }}>
+                    <UsersIcon size={20} color="var(--blue)" />
+                    <span>Workers Management</span>
                   </h2>
                   <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>
                     {totalCount} total workers · {activeCount} active on shift · {liveCount} GPS located
@@ -1354,111 +1358,7 @@ function Dashboard({ role, fullName }: { role: "admin" | "manager"; fullName: st
             </div>
           )}
 
-          {/* ══════════════ 3. TASKS PAGE ══════════════ */}
-          {sideNav === "tasks" && (
-            <div className="page-full-view">
-              <button
-                type="button"
-                onClick={() => setSideNav("dashboard")}
-                style={{ alignSelf: "flex-start", display: "flex", alignItems: "center", gap: 5, padding: "6px 12px", borderRadius: 8, background: "rgba(59,130,246,0.12)", border: "1px solid rgba(59,130,246,0.3)", color: "var(--blue)", cursor: "pointer", fontSize: 12, fontWeight: 700, marginBottom: 12 }}
-              >
-                ← Back to Dashboard
-              </button>
-
-              <div style={{ marginBottom: 16 }}>
-                <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "var(--text-primary)" }}>
-                  📋 Task Management
-                </h2>
-                <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>
-                  Assign work orders, track status, and inspect employee completion notes.
-                </div>
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 16, alignItems: "start" }}>
-                <div style={{ background: "var(--bg-card-solid)", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", padding: "20px 18px" }}>
-                  <form onSubmit={handleCreateTask} className="compact-form" style={{ gap: 12 }}>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>Assign New Task</div>
-                    <div>
-                      <label style={{ fontSize: 11, fontWeight: 600, color: "var(--text-secondary)", display: "block", marginBottom: 5 }}>Task Title</label>
-                      <input aria-label="Task title" placeholder="e.g. Inspect site A, Deliver safety gear" value={newTask.title} onChange={e => setNewTask({ ...newTask, title: e.target.value })} className="input-field" required />
-                    </div>
-                    <div>
-                      <label style={{ fontSize: 11, fontWeight: 600, color: "var(--text-secondary)", display: "block", marginBottom: 5 }}>Instructions / Details</label>
-                      <input aria-label="Instructions" placeholder="Specific notes, checklist, or location (optional)" value={newTask.description} onChange={e => setNewTask({ ...newTask, description: e.target.value })} className="input-field" />
-                    </div>
-                    <div>
-                      <label style={{ fontSize: 11, fontWeight: 600, color: "var(--text-secondary)", display: "block", marginBottom: 5 }}>Assign To</label>
-                      <select aria-label="Assign to" value={newTask.assignedTo} onChange={e => setNewTask({ ...newTask, assignedTo: e.target.value })} className="input-field" required>
-                        <option value="">Select a worker...</option>
-                        {allWorkers.filter(w => role === "admin" || w.role === "worker").map(w => (
-                          <option key={w.id} value={w.id}>{w.full_name} ({w.role === "worker" ? "employee" : w.role})</option>
-                        ))}
-                      </select>
-                    </div>
-                    <button type="submit" className="btn-primary" disabled={isCreatingTask} style={{ marginTop: 6, padding: "12px 18px", fontSize: 14 }}>
-                      {isCreatingTask ? <><Spinner /> &nbsp;Assigning...</> : "Assign Task →"}
-                    </button>
-                    <AnimatePresence>
-                      {taskMessage && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className={`alert-strip ${taskMessage.startsWith("✓") ? "success" : "error"}`}>{taskMessage}</motion.div>}
-                    </AnimatePresence>
-                  </form>
-                </div>
-
-                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                  <div style={{ background: "var(--bg-card-solid)", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", padding: "18px 16px" }}>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", marginBottom: 12 }}>
-                      Active Tasks ({pendingTasks.length})
-                    </div>
-                    {pendingTasks.length === 0 ? (
-                      <div style={{ fontSize: 12, color: "var(--text-muted)", padding: "16px 0", textAlign: "center" }}>No pending tasks right now.</div>
-                    ) : (
-                      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                        {pendingTasks.map(task => (
-                          <div key={task.id} style={{ background: "rgba(255,255,255,0.02)", border: "1px solid var(--border-mid)", borderRadius: 10, padding: "12px 14px" }}>
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                              <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>{task.title}</span>
-                              <TaskStatusPill status={task.status} />
-                            </div>
-                            {task.description && <div style={{ fontSize: 11, color: "var(--text-secondary)", marginBottom: 6 }}>{task.description}</div>}
-                            <div style={{ fontSize: 10, color: "var(--text-muted)", display: "flex", gap: 12 }}>
-                              <span>Assigned to: <strong style={{ color: "var(--text-primary)" }}>{task.assignee_name}</strong></span>
-                              <span>By: {task.assigner_name}</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {completedTasks.length > 0 && (
-                    <div style={{ background: "var(--bg-card-solid)", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", padding: "18px 16px" }}>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", marginBottom: 12 }}>
-                        Completed Tasks ({completedTasks.length})
-                      </div>
-                      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                        {completedTasks.map(task => (
-                          <div key={task.id} style={{ background: "rgba(255,255,255,0.02)", border: "1px solid var(--border-mid)", borderRadius: 10, padding: "12px 14px" }}>
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{task.title}</span>
-                              <TaskStatusPill status={task.status} />
-                            </div>
-                            <div style={{ fontSize: 10, color: "var(--text-muted)" }}>Completed by {task.assignee_name}</div>
-                            {task.completion_report && (
-                              <div style={{ fontSize: 11, color: "var(--green)", marginTop: 4, fontStyle: "italic", background: "rgba(0,214,143,0.06)", padding: "6px 8px", borderRadius: 6 }}>
-                                "{task.completion_report}"
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ══════════════ 4. ACTIVITY LOG PAGE ══════════════ */}
+          {/* ══════════════ 3. ACTIVITY LOG PAGE ══════════════ */}
           {sideNav === "activity" && role === "admin" && (
             <div className="page-full-view">
               <button
@@ -1466,15 +1366,17 @@ function Dashboard({ role, fullName }: { role: "admin" | "manager"; fullName: st
                 onClick={() => setSideNav("dashboard")}
                 style={{ alignSelf: "flex-start", display: "flex", alignItems: "center", gap: 5, padding: "6px 12px", borderRadius: 8, background: "rgba(59,130,246,0.12)", border: "1px solid rgba(59,130,246,0.3)", color: "var(--blue)", cursor: "pointer", fontSize: 12, fontWeight: 700, marginBottom: 12 }}
               >
-                ← Back to Dashboard
+                <ArrowLeftIcon size={13} />
+                <span>Back to Dashboard</span>
               </button>
 
               <div style={{ marginBottom: 14 }}>
-                <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "var(--text-primary)" }}>
-                  📜 Activity & Audit Log
+                <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "var(--text-primary)", display: "flex", alignItems: "center", gap: 8 }}>
+                  <ActivityIcon size={20} color="var(--blue)" />
+                  <span>Activity & Audit Log</span>
                 </h2>
                 <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>
-                  Real-time events, shift punch-ins, task completions, and GPS updates.
+                  Real-time events, shift punch-ins, and GPS location broadcasts.
                 </div>
               </div>
               <div style={{ background: "var(--bg-card-solid)", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", padding: "16px 14px", flex: 1, minHeight: 480, display: "flex", flexDirection: "column" }}>
@@ -1483,7 +1385,7 @@ function Dashboard({ role, fullName }: { role: "admin" | "manager"; fullName: st
             </div>
           )}
 
-          {/* ══════════════ 5. CREDENTIALS PAGE ══════════════ */}
+          {/* ══════════════ 4. CREDENTIALS PAGE ══════════════ */}
           {sideNav === "credentials" && role === "admin" && (
             <div className="page-full-view">
               <button
@@ -1491,12 +1393,14 @@ function Dashboard({ role, fullName }: { role: "admin" | "manager"; fullName: st
                 onClick={() => setSideNav("dashboard")}
                 style={{ alignSelf: "flex-start", display: "flex", alignItems: "center", gap: 5, padding: "6px 12px", borderRadius: 8, background: "rgba(59,130,246,0.12)", border: "1px solid rgba(59,130,246,0.3)", color: "var(--blue)", cursor: "pointer", fontSize: 12, fontWeight: 700, marginBottom: 12 }}
               >
-                ← Back to Dashboard
+                <ArrowLeftIcon size={13} />
+                <span>Back to Dashboard</span>
               </button>
 
               <div style={{ marginBottom: 14 }}>
-                <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "var(--text-primary)" }}>
-                  🔑 Worker Credentials & Logins
+                <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "var(--text-primary)", display: "flex", alignItems: "center", gap: 8 }}>
+                  <KeyIcon size={20} color="var(--blue)" />
+                  <span>Worker Credentials & Logins</span>
                 </h2>
                 <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>
                   View employee access credentials, temporary passwords, and reset login tokens.
@@ -1516,25 +1420,8 @@ function Dashboard({ role, fullName }: { role: "admin" | "manager"; fullName: st
 
 // ── EMPLOYEE PORTAL ──
 function EmployeePortal({ fullName }: { fullName: string }) {
-  const [tasks, setTasks]                 = useState<Task[]>([]);
-  const [report, setReport]               = useState<Record<string, string>>({});
-  const [message, setMessage]             = useState<string | null>(null);
-  const [tab, setTab]                     = useState<"shift" | "tasks">("shift");
   const [activeSession, setActiveSession] = useState<ActiveSession | null>(null);
   const [myLocation, setMyLocation]       = useState<{ latitude: number; longitude: number; accuracy: number } | null>(null);
-
-  useEffect(() => {
-    api.getTasks().then(r => setTasks(Array.isArray(r?.tasks) ? r.tasks : [])).catch(e => setMessage(e?.message));
-  }, []);
-
-  async function updateTask(taskId: string, action: "start" | "complete") {
-    try {
-      if (action === "start") await api.startTask(taskId);
-      else await api.completeTask(taskId, report[taskId] ?? "");
-      setTasks((await api.getTasks()).tasks);
-      setMessage(action === "start" ? "✓ Task started." : "✓ Report submitted.");
-    } catch (e: any) { setMessage(e.message ?? "Failed."); }
-  }
 
   function signOut() {
     setAuthToken(null);
@@ -1543,20 +1430,20 @@ function EmployeePortal({ fullName }: { fullName: string }) {
     window.location.reload();
   }
 
-  const pendingTasks = (tasks ?? []).filter(t => t?.status !== "completed");
-
   return (
     <div className="emp-shell">
       {/* Sidebar for desktop */}
       <div className="emp-sidebar">
-        <div style={{ width: 36, height: 36, background: "linear-gradient(135deg, rgba(0,214,143,0.2), rgba(0,214,143,0.08))", border: "1px solid rgba(0,214,143,0.3)", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, marginBottom: 16 }}>📍</div>
-        <button className={`emp-sidebar-btn${tab === "shift" ? " active" : ""}`} onClick={() => setTab("shift")} title="My Shift">⏱️</button>
-        <button className={`emp-sidebar-btn${tab === "tasks" ? " active" : ""}`} onClick={() => setTab("tasks")} title="My Tasks" style={{ position: "relative" }}>
-          📋
-          {pendingTasks.length > 0 && <span style={{ position: "absolute", top: 6, right: 6, width: 8, height: 8, borderRadius: "50%", background: "var(--amber)", border: "1.5px solid var(--bg-sidebar)" }} />}
+        <div style={{ width: 36, height: 36, background: "linear-gradient(135deg, rgba(56,189,248,0.2), rgba(56,189,248,0.08))", border: "1px solid rgba(56,189,248,0.3)", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
+          <MapPinIcon size={18} color="#38bdf8" />
+        </div>
+        <button className="emp-sidebar-btn active" title="My Shift">
+          <ClockIcon size={18} color="var(--green)" />
         </button>
         <div style={{ flex: 1 }} />
-        <button className="emp-sidebar-btn" onClick={signOut} title="Sign Out" style={{ color: "var(--red)" }}>🚪</button>
+        <button className="emp-sidebar-btn" onClick={signOut} title="Sign Out" style={{ color: "var(--red)" }}>
+          <LogOutIcon size={18} color="var(--red)" />
+        </button>
       </div>
 
       {/* Main */}
@@ -1567,10 +1454,7 @@ function EmployeePortal({ fullName }: { fullName: string }) {
             {/* Back button */}
             <button
               type="button"
-              onClick={() => {
-                if (tab !== "shift") setTab("shift");
-                else window.history.back();
-              }}
+              onClick={() => window.history.back()}
               title="Go Back"
               style={{
                 display: "flex",
@@ -1586,14 +1470,15 @@ function EmployeePortal({ fullName }: { fullName: string }) {
                 fontWeight: 700
               }}
             >
-              ← Back
+              <ArrowLeftIcon size={13} />
+              <span>Back</span>
             </button>
             <div>
               <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>
-                Hi, <span className="text-glow-green">{fullName}</span> 👋
+                Hi, <span className="text-glow-green">{fullName}</span>
               </div>
               <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
-                {tab === "shift" ? "Punch in to start shift & GPS tracking" : `${pendingTasks.length} task${pendingTasks.length !== 1 ? "s" : ""} pending`}
+                Shift management & live GPS tracking
               </div>
             </div>
           </div>
@@ -1606,7 +1491,7 @@ function EmployeePortal({ fullName }: { fullName: string }) {
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: 5,
+                gap: 6,
                 padding: "6px 12px",
                 borderRadius: 8,
                 background: "rgba(239, 68, 68, 0.15)",
@@ -1617,82 +1502,50 @@ function EmployeePortal({ fullName }: { fullName: string }) {
                 fontWeight: 700
               }}
             >
-              <LogOutIcon size={13} color="#f87171" style={{ marginRight: 5 }} /><span>Sign Out</span>
+              <LogOutIcon size={13} color="#f87171" />
+              <span>Sign Out</span>
             </button>
           </div>
         </div>
 
         {/* Content */}
         <div className="emp-content">
-          <AnimatePresence mode="wait">
-            {tab === "shift" && (
-              <motion.div key="shift" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-                <PunchInPanel
-                  userFullName={fullName}
-                  userRole="worker"
-                  onSessionChange={setActiveSession}
-                  onLocationUpdate={setMyLocation}
-                />
-                {/* Map */}
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
-                  style={{ height: 340, borderRadius: 14, overflow: "hidden", border: "1px solid var(--border)", marginTop: 4 }}>
-                  <MapView
-                    positions={myLocation && activeSession?.status === "active" ? [{
-                      session_id: activeSession.id,
-                      worker_id: "me",
-                      full_name: fullName,
-                      role: "worker",
-                      team_id: null,
-                      team_name: "My Shift",
-                      started_at: activeSession.started_at,
-                      update_interval_sec: 10,
-                      distance_filter_m: 10,
-                      location_id: "live-now",
-                      latitude: myLocation.latitude,
-                      longitude: myLocation.longitude,
-                      accuracy_m: myLocation.accuracy,
-                      captured_at: new Date().toISOString(),
-                      received_at: new Date().toISOString(),
-                      is_delayed: false,
-                      permission_state: "granted",
-                    }] : []}
-                    selectedWorkerId={null}
-                    route={null}
-                  />
-                </motion.div>
-                <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 8, textAlign: "center" }}>
-                  {activeSession?.status === "active" ? "Live tracking active • Synchronizing coordinates with server" : "Use the 📍 button on the map or punch in to begin tracking"}
-                </div>
-              </motion.div>
-            )}
-
-            {tab === "tasks" && (
-              <motion.div key="tasks" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-                <div style={{ fontSize: 16, fontWeight: 800, color: "var(--text-primary)", marginBottom: 14, letterSpacing: "-0.01em" }}>
-                  My Tasks <span style={{ fontSize: 12, color: "var(--text-muted)", fontWeight: 500 }}>({tasks.length} total)</span>
-                </div>
-                {tasks.length === 0 && !message && <div style={{ color: "var(--text-muted)", fontSize: 13, textAlign: "center", padding: 40, background: "var(--bg-card)", borderRadius: 12, border: "1px solid var(--border)" }}>No tasks assigned yet.</div>}
-                {tasks.map((task, i) => (
-                  <motion.div key={task.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }} className="glass-card" style={{ padding: "16px 18px", marginBottom: 12 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginBottom: 8 }}>
-                      <div style={{ fontWeight: 700, fontSize: 14, color: "var(--text-primary)" }}>{task.title}</div>
-                      <TaskStatusPill status={task.status} />
-                    </div>
-                    {task.description && <div style={{ fontSize: 13, color: "var(--text-secondary)", marginBottom: 8 }}>{task.description}</div>}
-                    <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 10 }}>Assigned by {task.assigner_name}</div>
-                    {task.status !== "completed" && (
-                      <>
-                        {task.status === "assigned" && <button type="button" className="btn-primary btn-sm" onClick={() => updateTask(task.id, "start")} style={{ marginBottom: 10, background: "linear-gradient(135deg,#0284c7,#3b82f6)" }}>▶ Start task</button>}
-                        <textarea aria-label={`Report for ${task.title}`} placeholder="Completion report..." value={report[task.id] ?? ""} onChange={e => setReport({ ...report, [task.id]: e.target.value })} className="input-field" style={{ resize: "vertical", minHeight: 64, marginBottom: 8 }} />
-                        <button type="button" className="btn-primary btn-sm btn-green" onClick={() => updateTask(task.id, "complete")}>✓ Submit report</button>
-                      </>
-                    )}
-                  </motion.div>
-                ))}
-                <AnimatePresence>{message && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className={`alert-strip ${message.startsWith("✓") ? "success" : "error"}`}>{message}</motion.div>}</AnimatePresence>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <PunchInPanel
+            userFullName={fullName}
+            userRole="worker"
+            onSessionChange={setActiveSession}
+            onLocationUpdate={setMyLocation}
+          />
+          {/* Map */}
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
+            style={{ height: 340, borderRadius: 14, overflow: "hidden", border: "1px solid var(--border)", marginTop: 4 }}>
+            <MapView
+              positions={myLocation && activeSession?.status === "active" ? [{
+                session_id: activeSession.id,
+                worker_id: "me",
+                full_name: fullName,
+                role: "worker",
+                team_id: null,
+                team_name: "My Shift",
+                started_at: activeSession.started_at,
+                update_interval_sec: 10,
+                distance_filter_m: 10,
+                location_id: "live-now",
+                latitude: myLocation.latitude,
+                longitude: myLocation.longitude,
+                accuracy_m: myLocation.accuracy,
+                captured_at: new Date().toISOString(),
+                received_at: new Date().toISOString(),
+                is_delayed: false,
+                permission_state: "granted",
+              }] : []}
+              selectedWorkerId={null}
+              route={null}
+            />
+          </motion.div>
+          <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 8, textAlign: "center" }}>
+            {activeSession?.status === "active" ? "Live tracking active • Synchronizing coordinates with server" : "Punch in above to begin shift and broadcast live GPS location"}
+          </div>
         </div>
       </div>
     </div>
