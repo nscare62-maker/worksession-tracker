@@ -121,6 +121,7 @@ function PunchInPanel({
   const [elapsed, setElapsed]     = useState<string>("");
   const [gpsStatus, setGpsStatus] = useState<"idle"|"locating"|"ok"|"error">("idle");
   const [accuracy, setAccuracy]   = useState<number | null>(null);
+  const [gpsErrorMessage, setGpsErrorMessage] = useState<string | null>(null);
   const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
   const [syncFailed, setSyncFailed] = useState<boolean>(false);
 
@@ -151,35 +152,89 @@ function PunchInPanel({
   }, [session?.started_at]);
 
   const sendBeacon = useCallback(async (sessionId: string) => {
-    if (!navigator.geolocation) { setGpsStatus("error"); return; }
-    setGpsStatus("locating");
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        try {
-          const lat = pos.coords.latitude;
-          const lng = pos.coords.longitude;
-          const acc = Math.round(pos.coords.accuracy);
+    setGpsStatus((prev) => (prev === "ok" ? "ok" : "locating"));
+
+    // 1. Native Android hardware bridge check (instant lock)
+    if (typeof (window as any).AndroidBridge?.getLastKnownLocation === "function") {
+      try {
+        const raw = (window as any).AndroidBridge.getLastKnownLocation();
+        const loc = JSON.parse(raw || "{}");
+        if (loc.latitude && loc.longitude) {
+          const acc = Math.round(loc.accuracy || 15);
           setAccuracy(acc);
           setGpsStatus("ok");
+          setGpsErrorMessage(null);
           lastPostRef.current = Date.now();
-          onLocationUpdate?.({ latitude: lat, longitude: lng, accuracy: acc });
+          onLocationUpdate?.({ latitude: loc.latitude, longitude: loc.longitude, accuracy: acc });
           await api.postLocationUpdate?.({
             sessionId,
-            latitude: lat,
-            longitude: lng,
+            latitude: loc.latitude,
+            longitude: loc.longitude,
             accuracyM: acc,
-            capturedAt: new Date().toISOString(),
+            capturedAt: new Date(loc.time || Date.now()).toISOString(),
             updateType: "periodic",
           });
           setLastSyncTime(new Date().toLocaleTimeString());
           setSyncFailed(false);
-        } catch {
-          setGpsStatus("error");
-          setSyncFailed(true);
         }
+      } catch (e) {
+        console.error("AndroidBridge query error", e);
+      }
+    }
+
+    if (!navigator.geolocation) {
+      setGpsStatus("error");
+      setGpsErrorMessage("GPS geolocation is not supported on this browser/device.");
+      return;
+    }
+
+    const postLocation = async (lat: number, lng: number, acc: number) => {
+      try {
+        setAccuracy(acc);
+        setGpsStatus("ok");
+        setGpsErrorMessage(null);
+        lastPostRef.current = Date.now();
+        onLocationUpdate?.({ latitude: lat, longitude: lng, accuracy: acc });
+        await api.postLocationUpdate?.({
+          sessionId,
+          latitude: lat,
+          longitude: lng,
+          accuracyM: acc,
+          capturedAt: new Date().toISOString(),
+          updateType: "periodic",
+        });
+        setLastSyncTime(new Date().toLocaleTimeString());
+        setSyncFailed(false);
+      } catch {
+        setSyncFailed(true);
+      }
+    };
+
+    // Try High Accuracy (satellite) first with 5s timeout
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        postLocation(pos.coords.latitude, pos.coords.longitude, Math.round(pos.coords.accuracy));
       },
-      () => setGpsStatus("error"),
-      { enableHighAccuracy: true, timeout: 15_000, maximumAge: 5_000 }
+      () => {
+        // High accuracy timed out or failed (e.g. indoors) -> immediately fallback to network/WiFi location!
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            postLocation(pos.coords.latitude, pos.coords.longitude, Math.round(pos.coords.accuracy));
+          },
+          (err) => {
+            setGpsStatus("error");
+            if (err.code === 1) {
+              setGpsErrorMessage("Location permission denied. Please allow Location in Phone Settings.");
+            } else if (err.code === 2) {
+              setGpsErrorMessage("Device Location/GPS is turned OFF. Please turn on Location in quick settings.");
+            } else {
+              setGpsErrorMessage("Acquiring GPS fix. Please ensure Location is enabled.");
+            }
+          },
+          { enableHighAccuracy: false, timeout: 10_000, maximumAge: 60_000 }
+        );
+      },
+      { enableHighAccuracy: true, timeout: 5_000, maximumAge: 5_000 }
     );
   }, [onLocationUpdate]);
 
@@ -188,7 +243,7 @@ function PunchInPanel({
       const sId = session.id;
       sendBeacon(sId);
 
-      // Continuous GPS tracking with watchPosition
+      // Continuous GPS tracking with watchPosition (network + satellite)
       if (typeof navigator !== "undefined" && navigator.geolocation) {
         try {
           watchIdRef.current = navigator.geolocation.watchPosition(
@@ -199,6 +254,7 @@ function PunchInPanel({
               const acc = Math.round(pos.coords.accuracy);
               setAccuracy(acc);
               setGpsStatus("ok");
+              setGpsErrorMessage(null);
               onLocationUpdate?.({ latitude: lat, longitude: lng, accuracy: acc });
 
               // Post update at most once every 6 seconds to capture live movement smoothly
@@ -221,7 +277,7 @@ function PunchInPanel({
               }
             },
             () => {},
-            { enableHighAccuracy: true, timeout: 15_000, maximumAge: 3_000 }
+            { enableHighAccuracy: false, timeout: 20_000, maximumAge: 10_000 }
           );
         } catch { /* ignore */ }
       }
@@ -310,9 +366,76 @@ function PunchInPanel({
           <StatChip label="Shift Duration" value={elapsed || "0m 00s"} color="var(--green)" />
           <StatChip
             label="GPS Beacon"
-            value={gpsStatus === "ok" ? (accuracy ? `±${accuracy}m` : "Active") : gpsStatus === "locating" ? "Locating..." : "Pending"}
-            color={gpsStatus === "ok" ? "var(--green)" : gpsStatus === "locating" ? "var(--amber)" : "var(--text-muted)"}
+            value={
+              gpsStatus === "ok"
+                ? (accuracy ? `±${accuracy}m` : "Active")
+                : gpsStatus === "locating"
+                ? "Locating..."
+                : "Error / Off"
+            }
+            color={
+              gpsStatus === "ok"
+                ? "var(--green)"
+                : gpsStatus === "locating"
+                ? "var(--amber)"
+                : "#ef4444"
+            }
           />
+        </div>
+      )}
+
+      {isActive && gpsStatus === "error" && (
+        <div style={{
+          fontSize: 11,
+          marginBottom: 10,
+          padding: "8px 12px",
+          borderRadius: 8,
+          background: "rgba(239,68,68,0.12)",
+          border: "1px solid rgba(239,68,68,0.35)",
+          color: "#fca5a5",
+          display: "flex",
+          flexDirection: "column",
+          gap: 6,
+        }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+            <span>⚠️ {gpsErrorMessage || "GPS signal not acquired. Please ensure Location is ON."}</span>
+            <button
+              type="button"
+              onClick={() => session?.id && sendBeacon(session.id)}
+              style={{
+                background: "rgba(239,68,68,0.25)",
+                border: "1px solid rgba(239,68,68,0.5)",
+                borderRadius: 6,
+                color: "#fff",
+                fontSize: 11,
+                fontWeight: 700,
+                padding: "4px 8px",
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+              }}
+            >
+              🔄 Retry GPS
+            </button>
+          </div>
+          {typeof (window as any).AndroidBridge?.openLocationSettings === "function" && (
+            <button
+              type="button"
+              onClick={() => (window as any).AndroidBridge.openLocationSettings()}
+              style={{
+                background: "transparent",
+                border: "none",
+                color: "#38bdf8",
+                fontSize: 11,
+                fontWeight: 600,
+                textAlign: "left",
+                cursor: "pointer",
+                padding: 0,
+                textDecoration: "underline",
+              }}
+            >
+              ⚙️ Open Android Location Settings
+            </button>
+          )}
         </div>
       )}
 
@@ -346,9 +469,32 @@ function PunchInPanel({
             {busy ? <Spinner /> : "⏱️ Punch In"}
           </button>
         ) : (
-          <button type="button" className="btn-primary btn-red" onClick={handlePunchOut} disabled={busy} style={{ flex: 1, padding: "11px 20px", fontSize: 14 }}>
-            {busy ? <Spinner /> : "⏹️ Punch Out"}
-          </button>
+          <>
+            <button type="button" className="btn-primary btn-red" onClick={handlePunchOut} disabled={busy} style={{ flex: 1, padding: "11px 16px", fontSize: 14 }}>
+              {busy ? <Spinner /> : "⏹️ Punch Out"}
+            </button>
+            <button
+              type="button"
+              onClick={() => session?.id && sendBeacon(session.id)}
+              disabled={busy}
+              style={{
+                padding: "11px 16px",
+                fontSize: 13,
+                fontWeight: 700,
+                background: "rgba(59,130,246,0.15)",
+                border: "1px solid rgba(59,130,246,0.4)",
+                borderRadius: "var(--radius-sm, 8px)",
+                color: "#38bdf8",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+              }}
+              title="Force GPS update now"
+            >
+              🔄 Refresh GPS
+            </button>
+          </>
         )}
       </div>
     </div>

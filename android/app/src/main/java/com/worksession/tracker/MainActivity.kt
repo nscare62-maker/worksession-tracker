@@ -116,13 +116,15 @@ class MainActivity : AppCompatActivity() {
             userAgentString = userAgentString + " WorkSessionAndroidApp/1.0"
         }
 
+        binding.webView.addJavascriptInterface(AndroidLocationBridge(), "AndroidBridge")
+
         binding.webView.webChromeClient = object : WebChromeClient() {
             override fun onGeolocationPermissionsShowPrompt(
                 origin: String?,
                 callback: GeolocationPermissions.Callback?
             ) {
-                // Grant geolocation permission so HTML5 GPS connects directly
-                callback?.invoke(origin, true, false)
+                // Grant geolocation permission permanently for the portal origin
+                callback?.invoke(origin, true, true)
             }
 
             override fun onProgressChanged(view: WebView?, newProgress: Int) {
@@ -313,5 +315,48 @@ class MainActivity : AppCompatActivity() {
     override fun onDestroy() {
         binding.webView.destroy()
         super.onDestroy()
+    }
+
+    inner class AndroidLocationBridge {
+        @JavascriptInterface
+        fun getLastKnownLocation(): String {
+            try {
+                val lm = getSystemService(LOCATION_SERVICE) as? android.location.LocationManager ?: return "{}"
+                val gpsLoc = try { lm.getLastKnownLocation(android.location.LocationManager.GPS_PROVIDER) } catch (e: SecurityException) { null }
+                val netLoc = try { lm.getLastKnownLocation(android.location.LocationManager.NETWORK_PROVIDER) } catch (e: SecurityException) { null }
+                val passiveLoc = try { lm.getLastKnownLocation(android.location.LocationManager.PASSIVE_PROVIDER) } catch (e: SecurityException) { null }
+
+                val candidates = listOfNotNull(gpsLoc, netLoc, passiveLoc)
+                val best = candidates.maxByOrNull { it.time }
+                if (best != null) {
+                    val obj = org.json.JSONObject()
+                    obj.put("latitude", best.latitude)
+                    obj.put("longitude", best.longitude)
+                    obj.put("accuracy", best.accuracy)
+                    obj.put("time", best.time)
+                    return obj.toString()
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error in getLastKnownLocation", e)
+            }
+            return "{}"
+        }
+
+        @JavascriptInterface
+        fun isLocationEnabled(): Boolean {
+            val lm = getSystemService(LOCATION_SERVICE) as? android.location.LocationManager ?: return false
+            return lm.isProviderEnabled(android.location.LocationManager.GPS_PROVIDER) ||
+                   lm.isProviderEnabled(android.location.LocationManager.NETWORK_PROVIDER)
+        }
+
+        @JavascriptInterface
+        fun openLocationSettings() {
+            try {
+                val intent = Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS)
+                startActivity(intent)
+            } catch (e: Exception) {
+                Log.e(TAG, "Cannot open location settings", e)
+            }
+        }
     }
 }
