@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { getLiveWorkerPositions } from "../services/location.service";
 import { pool } from "../db/pool";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import { logActivity } from "../services/activity.service";
 
 export async function createManagedUser(req: Request, res: Response) {

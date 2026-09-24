@@ -23,3 +23,6 @@ android/app/release.jks
 # OS files
 .DS_Store
 Thumbs.db
+
+# Local scripts
+push-to-github.bat
