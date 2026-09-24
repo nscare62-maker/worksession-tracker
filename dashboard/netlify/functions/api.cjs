@@ -270,13 +270,15 @@ app.post("/api/locations", authenticate, async (req, res) => {
 
     const capturedDate = capturedAt ? new Date(capturedAt) : new Date();
     const isDelayed = updateType === "queued_offline" || (Date.now() - capturedDate.getTime() > 90000);
+    const validUpdateTypes = ["interval", "distance", "manual_ping", "queued_offline", "periodic"];
+    const safeUpdateType = validUpdateTypes.includes(updateType) ? updateType : "interval";
 
     const insertResult = await pool.query(
       `INSERT INTO location_updates (session_id, worker_id, latitude, longitude, accuracy_m, speed_mps, heading_deg, captured_at, update_type, is_delayed, permission_state)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
        RETURNING id`,
       [sessionId, req.user.sub, latitude, longitude, accuracyM ?? null, speedMps ?? null, headingDeg ?? null,
-       capturedDate.toISOString(), updateType ?? "interval", isDelayed, "granted"]
+       capturedDate.toISOString(), safeUpdateType, isDelayed, "granted"]
     );
 
     const locationId = insertResult.rows[0]?.id;
@@ -308,7 +310,9 @@ app.get("/api/manager/positions/live", authenticate, requireRole("admin", "manag
       FROM work_sessions ws
       JOIN users u ON u.id = ws.worker_id
       LEFT JOIN teams t ON t.id = u.team_id
-      LEFT JOIN location_updates lu ON lu.id = ws.last_location_id
+      LEFT JOIN location_updates lu ON lu.id = COALESCE(ws.last_location_id, (
+        SELECT id FROM location_updates WHERE session_id = ws.id ORDER BY captured_at DESC LIMIT 1
+      ))
       WHERE ws.status = 'active' ${roleClause} ${teamClause}
       ORDER BY ws.worker_id, ws.started_at DESC
     `;

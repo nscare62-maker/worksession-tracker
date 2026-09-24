@@ -124,6 +124,7 @@ function PunchInPanel({
   const [gpsErrorMessage, setGpsErrorMessage] = useState<string | null>(null);
   const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
   const [syncFailed, setSyncFailed] = useState<boolean>(false);
+  const [syncError, setSyncError]   = useState<string | null>(null);
 
   const beaconTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const watchIdRef     = useRef<number | null>(null);
@@ -165,17 +166,23 @@ function PunchInPanel({
           setGpsStatus("ok");
           setGpsErrorMessage(null);
           lastPostRef.current = Date.now();
-          onLocationUpdate?.({ latitude: loc.latitude, longitude: loc.longitude, accuracy: acc });
-          await api.postLocationUpdate?.({
-            sessionId,
-            latitude: loc.latitude,
-            longitude: loc.longitude,
-            accuracyM: acc,
-            capturedAt: new Date(loc.time || Date.now()).toISOString(),
-            updateType: "periodic",
-          });
-          setLastSyncTime(new Date().toLocaleTimeString());
-          setSyncFailed(false);
+          try {
+            await api.postLocationUpdate?.({
+              sessionId,
+              latitude: loc.latitude,
+              longitude: loc.longitude,
+              accuracyM: acc,
+              capturedAt: new Date(loc.time || Date.now()).toISOString(),
+              updateType: "interval",
+            });
+            setLastSyncTime(new Date().toLocaleTimeString());
+            setSyncFailed(false);
+            setSyncError(null);
+          } catch (e: any) {
+            console.error("AndroidBridge postLocationUpdate error", e);
+            setSyncFailed(true);
+            setSyncError(e?.message || "Sync failed");
+          }
         }
       } catch (e) {
         console.error("AndroidBridge query error", e);
@@ -201,12 +208,15 @@ function PunchInPanel({
           longitude: lng,
           accuracyM: acc,
           capturedAt: new Date().toISOString(),
-          updateType: "periodic",
+          updateType: "interval",
         });
         setLastSyncTime(new Date().toLocaleTimeString());
         setSyncFailed(false);
-      } catch {
+        setSyncError(null);
+      } catch (err: any) {
+        console.error("postLocation failed", err);
         setSyncFailed(true);
+        setSyncError(err?.message || "Sync failed");
       }
     };
 
@@ -267,12 +277,15 @@ function PunchInPanel({
                     longitude: lng,
                     accuracyM: acc,
                     capturedAt: new Date().toISOString(),
-                    updateType: "periodic",
+                    updateType: "interval",
                   });
                   setLastSyncTime(new Date().toLocaleTimeString());
                   setSyncFailed(false);
-                } catch {
+                  setSyncError(null);
+                } catch (err: any) {
+                  console.error("watchPosition postLocationUpdate failed", err);
                   setSyncFailed(true);
+                  setSyncError(err?.message || "Sync failed");
                 }
               }
             },
@@ -453,7 +466,9 @@ function PunchInPanel({
         }}>
           <span style={{ fontSize: 12 }}>{syncFailed ? "⚠️" : "📡"}</span>
           <span style={{ color: syncFailed ? "var(--amber)" : "var(--green)", fontWeight: 600 }}>
-            {syncFailed ? "Server sync retrying..." : (lastSyncTime ? `Live Broadcast Synced (${lastSyncTime})` : "Broadcasting live GPS to cloud server...")}
+            {syncFailed
+              ? (syncError ? `Server sync retrying (${syncError})...` : "Server sync retrying...")
+              : (lastSyncTime ? `Live Broadcast Synced (${lastSyncTime})` : "Broadcasting live GPS to cloud server...")}
           </span>
         </div>
       )}

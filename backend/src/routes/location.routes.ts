@@ -16,7 +16,7 @@ const singleUpdateSchema = z.object({
   speedMps: z.number().optional(),
   headingDeg: z.number().min(0).max(360).optional(),
   capturedAt: z.string().datetime(),
-  updateType: z.enum(["interval", "distance", "manual_ping", "queued_offline"]),
+  updateType: z.enum(["interval", "distance", "manual_ping", "queued_offline", "periodic"]),
   permissionState: z.enum(["granted", "denied", "restricted", "unknown"]).optional(),
 });
 

@@ -96,14 +96,16 @@ export async function getLiveWorkerPositions(teamIds: string[] | "all") {
 
   const result = await pool.query(
     `SELECT DISTINCT ON (ws.worker_id)
-            ws.id AS session_id, ws.worker_id, u.full_name, u.team_id, t.name AS team_name,
+            ws.id AS session_id, ws.worker_id, u.full_name, u.role, u.team_id, t.name AS team_name,
             ws.started_at, ws.update_interval_sec, ws.distance_filter_m,
             lu.id AS location_id, lu.latitude, lu.longitude,
             lu.accuracy_m, lu.captured_at, lu.received_at, lu.is_delayed, lu.permission_state
      FROM work_sessions ws
      JOIN users u ON u.id = ws.worker_id
      LEFT JOIN teams t ON t.id = u.team_id
-     LEFT JOIN location_updates lu ON lu.id = ws.last_location_id
+     LEFT JOIN location_updates lu ON lu.id = COALESCE(ws.last_location_id, (
+       SELECT id FROM location_updates WHERE session_id = ws.id ORDER BY captured_at DESC LIMIT 1
+     ))
      WHERE ws.status = 'active' ${roleClause} ${teamClause}
      ORDER BY ws.worker_id, ws.started_at DESC`,
     params
