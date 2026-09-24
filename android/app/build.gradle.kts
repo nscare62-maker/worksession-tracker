@@ -16,7 +16,7 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        buildConfigField("String", "API_BASE_URL", "\"https://worksession-tracker-backend.onrender.com\"")
+        buildConfigField("String", "API_BASE_URL", "\"https://worksession-tracker.netlify.app/api\"")
     }
 
     signingConfigs {

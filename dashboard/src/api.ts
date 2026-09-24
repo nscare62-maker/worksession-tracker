@@ -1,10 +1,8 @@
 // API base: on Netlify (any device), use /api prefix (Netlify Function).
 // Locally, fall back to http://localhost:4000.
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ??
-  (typeof window !== "undefined" && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1"
-    ? "/api"   // Netlify Function — works on ALL devices (laptop, phone, tablet)
-    : "http://localhost:4000");
+  import.meta.env.VITE_API_BASE_URL ||
+  "https://worksession-tracker.netlify.app/api";
 
 let authToken: string | null = localStorage.getItem("worksession.token");
 
